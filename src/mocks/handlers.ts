@@ -7,6 +7,8 @@ import { err, gate, parseScenario } from './scenarios'
 import { buildQuote, createOrder, ownerOf, settleOrders } from './logic'
 import { delay } from 'msw'
 
+const WALLET_PROVIDERS: WalletProvider[] = ['metamask', 'coinbase', 'walletconnect']
+const WALLET_NETWORKS: Network[] = ['ethereum', 'polygon', 'arbitrum']
 const SESSION_MS = 30 * 60 * 1000
 const PAGE_SIZE = 8
 
@@ -240,6 +242,7 @@ export const handlers = [
     const g = await gate(request, 'wallets.create'); if (g) return g
     const a = authenticate(request); if (isResponse(a)) return a
     const b = (await request.json()) as { provider: WalletProvider; network: Network }
+    if (!WALLET_PROVIDERS.includes(b.provider) || !WALLET_NETWORKS.includes(b.network)) return err(400, 'BAD_REQUEST', 'Carteira ou rede inválida.')
     const w: Wallet = { id: newId('w'), provider: b.provider, network: b.network, address: `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`, connected: false }
     ;(db.wallets[a.userId] ??= []).push(w); save()
     return HttpResponse.json(w, { status: 201 })
@@ -254,6 +257,7 @@ export const handlers = [
     return HttpResponse.json(w)
   }),
   http.post('/api/wallets/:id/disconnect', async ({ request, params }) => {
+    const g = await gate(request, 'wallets.disconnect'); if (g) return g
     const a = authenticate(request); if (isResponse(a)) return a
     const w = (db.wallets[a.userId] ?? []).find((x) => x.id === params.id)
     if (!w) return err(404, 'NOT_FOUND', 'Carteira não encontrada.')
@@ -261,7 +265,9 @@ export const handlers = [
     return HttpResponse.json(w)
   }),
   http.delete('/api/wallets/:id', async ({ request, params }) => {
+    const g = await gate(request, 'wallets.remove'); if (g) return g
     const a = authenticate(request); if (isResponse(a)) return a
+    if (!(db.wallets[a.userId] ?? []).some((x) => x.id === params.id)) return err(404, 'NOT_FOUND', 'Carteira não encontrada.')
     db.wallets[a.userId] = (db.wallets[a.userId] ?? []).filter((x) => x.id !== params.id); save()
     return new HttpResponse(null, { status: 204 })
   }),

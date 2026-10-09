@@ -14,6 +14,7 @@ import { Profile } from '@/routes/Profile'
 import { Wallets } from '@/routes/Wallets'
 import { ErrorState } from '@/components/ui/states'
 import { Toaster } from '@/components/layout/Toaster'
+import { SessionWatcher } from '@/components/layout/SessionWatcher'
 
 interface RouterContext { queryClient: QueryClient }
 
@@ -26,6 +27,7 @@ const root = createRootRouteWithContext<RouterContext>()({
   component: () => (
     <>
       <a href="#main" className="sr-only-focusable rounded bg-brand px-3 py-2">Pular para o conteúdo</a>
+      <SessionWatcher />
       <Header />
       <main id="main"><Outlet /></main>
       <Toaster />
