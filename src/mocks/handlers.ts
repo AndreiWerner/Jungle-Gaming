@@ -144,12 +144,18 @@ export const handlers = [
     const a = authenticate(request); if (isResponse(a)) return a
     const guest = (await request.json()) as Cart
     const cart = db.carts[a.userId] ?? { items: [], couponCode: null }
+    // Idempotency-Key opcional: repetir a mesma mescla devolve o carrinho atual sem somar de novo
+    const mergeKey = request.headers.get('idempotency-key')
+    const mergeId = mergeKey ? `${a.userId}:merge:${mergeKey}` : null
+    if (mergeId && db.idempotency[mergeId]) return HttpResponse.json(cart)
     for (const gi of guest.items) {
       const ex = cart.items.find((i) => i.nftId === gi.nftId)
       if (ex) ex.quantity += gi.quantity; else cart.items.push(gi)
     }
     cart.couponCode = cart.couponCode ?? guest.couponCode
-    db.carts[a.userId] = cart; save()
+    db.carts[a.userId] = cart
+    if (mergeId) db.idempotency[mergeId] = 'done'
+    save()
     return HttpResponse.json(cart)
   }),
   http.post('/api/coupons/validate', async ({ request }) => {

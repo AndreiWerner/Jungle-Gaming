@@ -9,4 +9,4 @@ export const storage = {
     try { localStorage.removeItem(key) } catch { /* noop */ }
   },
 }
-export const KEYS = { session: 'nftm:session', guestCart: 'nftm:cart:guest', scenario: 'nftm:scenario' } as const
+export const KEYS = { session: 'nftm:session', guestCart: 'nftm:cart:guest', mergeKey: 'nftm:cart:merge-key', scenario: 'nftm:scenario' } as const

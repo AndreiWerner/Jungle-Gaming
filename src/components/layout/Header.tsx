@@ -3,6 +3,8 @@ import { Link } from '@tanstack/react-router'
 import { Menu, ShoppingCart, X } from 'lucide-react'
 import { useSession } from '@/app/session'
 import { Button } from '@/components/ui/button'
+import { itemCount } from '@/features/cart/cartOps'
+import { useCart } from '@/features/cart/queries'
 
 const privateLinks = [
   { to: '/profile', label: 'Perfil' },
@@ -12,6 +14,8 @@ const privateLinks = [
 export function Header() {
   const { session, logout } = useSession()
   const [open, setOpen] = useState(false)
+  const count = itemCount(useCart().data ?? { items: [], couponCode: null })
+  const cartLabel = count > 0 ? `Carrinho, ${count} ${count === 1 ? 'item' : 'itens'}` : 'Carrinho'
   const close = () => setOpen(false)
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-bg/90 backdrop-blur">
@@ -20,7 +24,7 @@ export function Header() {
         <nav aria-label="Principal" className="hidden items-center gap-1 md:flex">
           <Link to="/" className="rounded-lg px-3 py-2 text-sm hover:bg-surface-2">Explorar</Link>
           {session && privateLinks.map((l) => <Link key={l.to} to={l.to} className="rounded-lg px-3 py-2 text-sm hover:bg-surface-2">{l.label}</Link>)}
-          <Link to="/cart" aria-label="Carrinho" className="rounded-lg p-2 hover:bg-surface-2"><ShoppingCart size={20} aria-hidden /></Link>
+          <Link to="/cart" aria-label={cartLabel} className="relative rounded-lg p-2 hover:bg-surface-2"><ShoppingCart size={20} aria-hidden />{count > 0 && <span aria-hidden className="absolute -right-1 -top-1 min-w-5 rounded-full bg-brand px-1 text-center text-xs font-semibold">{count}</span>}</Link>
           {session
             ? <Button variant="secondary" onClick={() => void logout()}>Sair</Button>
             : <Link to="/login" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium">Entrar</Link>}
@@ -32,7 +36,7 @@ export function Header() {
       {open && (
         <nav id="mobile-nav" aria-label="Principal (mobile)" className="flex flex-col gap-1 border-t border-border p-3 md:hidden">
           <Link to="/" onClick={close} className="rounded-lg px-3 py-3 hover:bg-surface-2">Explorar</Link>
-          <Link to="/cart" onClick={close} className="rounded-lg px-3 py-3 hover:bg-surface-2">Carrinho</Link>
+          <Link to="/cart" onClick={close} aria-label={cartLabel} className="rounded-lg px-3 py-3 hover:bg-surface-2">Carrinho{count > 0 ? ` (${count})` : ''}</Link>
           {session && privateLinks.map((l) => <Link key={l.to} to={l.to} onClick={close} className="rounded-lg px-3 py-3 hover:bg-surface-2">{l.label}</Link>)}
           {session
             ? <button className="rounded-lg px-3 py-3 text-left hover:bg-surface-2" onClick={() => { close(); void logout() }}>Sair</button>
