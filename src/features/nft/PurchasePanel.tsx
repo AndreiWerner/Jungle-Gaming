@@ -1,9 +1,9 @@
 import type { NFT } from '@/types'
 import { formatEth } from '@/lib/money'
+import { FavoriteButton } from '@/features/favorites/FavoriteButton'
 
 /**
- * Painel de preço e disponibilidade. Favoritos e carrinho (Fases 7 e 8) serão acoplados aqui;
- * por ora não há ações, então nenhum botão é exibido.
+ * Painel de preço e disponibilidade, com a ação de favoritar. O carrinho (Fase 8) será acoplado aqui.
  */
 export function PurchasePanel({ nft }: { nft: NFT }) {
   const soldOut = nft.available <= 0
@@ -16,6 +16,7 @@ export function PurchasePanel({ nft }: { nft: NFT }) {
       <p className={soldOut ? 'font-medium text-danger' : 'text-success'}>
         {soldOut ? 'Esgotado: nenhuma unidade disponível' : `${nft.available} ${nft.available === 1 ? 'unidade disponível' : 'unidades disponíveis'}`}
       </p>
+      <FavoriteButton nftId={nft.id} name={nft.name} variant="full" />
     </section>
   )
 }

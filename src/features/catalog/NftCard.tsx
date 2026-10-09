@@ -1,11 +1,12 @@
 import { Link } from '@tanstack/react-router'
 import type { NFT } from '@/types'
 import { formatEth } from '@/lib/money'
+import { FavoriteButton } from '@/features/favorites/FavoriteButton'
 
 export function NftCard({ nft }: { nft: NFT }) {
   const soldOut = nft.available <= 0
   return (
-    <li>
+    <li className="relative">
       <Link to="/nft/$id" params={{ id: nft.id }} className="group block overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-brand">
         <div className="relative aspect-square bg-surface-2">
           <img src={nft.images[0]} alt={`Arte do NFT ${nft.name}`} width={400} height={400} loading="lazy" className="h-full w-full object-cover" />
@@ -20,6 +21,7 @@ export function NftCard({ nft }: { nft: NFT }) {
           </div>
         </div>
       </Link>
+      <FavoriteButton nftId={nft.id} name={nft.name} variant="icon" className="absolute right-2 top-2 z-10" />
     </li>
   )
 }

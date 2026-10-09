@@ -13,6 +13,7 @@ import { Register } from '@/routes/Register'
 import { Profile } from '@/routes/Profile'
 import { Wallets } from '@/routes/Wallets'
 import { ErrorState } from '@/components/ui/states'
+import { Toaster } from '@/components/layout/Toaster'
 
 interface RouterContext { queryClient: QueryClient }
 
@@ -27,6 +28,7 @@ const root = createRootRouteWithContext<RouterContext>()({
       <a href="#main" className="sr-only-focusable rounded bg-brand px-3 py-2">Pular para o conteúdo</a>
       <Header />
       <main id="main"><Outlet /></main>
+      <Toaster />
     </>
   ),
   notFoundComponent: () => <div className="mx-auto max-w-3xl px-4 py-16"><ErrorState error={{ message: 'Página não encontrada.' }} /></div>,
