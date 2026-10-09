@@ -3,8 +3,8 @@ import { SlidersHorizontal } from 'lucide-react'
 import type { CatalogFacets, Category, SortKey } from '@/types'
 import type { HomeSearch } from '@/app/router'
 import { Button } from '@/components/ui/button'
+import { CATEGORY_LABEL } from './labels'
 
-const CATEGORY_LABEL: Record<Category, string> = { art: 'Arte', music: 'Música', gaming: 'Games', collectibles: 'Colecionáveis', photography: 'Fotografia' }
 const SORT_LABEL: Record<SortKey, string> = { recent: 'Mais recentes', 'price-asc': 'Menor preço', 'price-desc': 'Maior preço', name: 'Nome (A–Z)' }
 
 interface Props { value: HomeSearch; facets?: CatalogFacets; onChange: (patch: Partial<HomeSearch>) => void; onClear: () => void }

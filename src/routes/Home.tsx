@@ -8,11 +8,14 @@ import { facetsOptions, featuredOptions, nftListOptions } from '@/features/catal
 import { Filters } from '@/features/catalog/Filters'
 import { NftCard, NftCardSkeleton } from '@/features/catalog/NftCard'
 import { Pagination } from '@/features/catalog/Pagination'
+import { saveLastSearch } from '@/features/catalog/lastSearch'
 
 export function Home() {
   const search = useSearch({ from: '/' }) as HomeSearch
   const navigate = useNavigate({ from: '/' })
   const filters = { search: search.search, category: search.category, collection: search.collection, sort: search.sort, page: search.page ?? 1 }
+
+  useEffect(() => { saveLastSearch(search) }, [search])
 
   const list = useQuery(nftListOptions(filters))
   const facets = useQuery(facetsOptions())
