@@ -27,6 +27,7 @@ npm run dev          # app em http://localhost:5173 + servidor Socket.IO de dese
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint |
 | `npm run test:e2e` | Testes end-to-end com Playwright |
+| `npm run audit:lighthouse` | 3 medições por página/perfil, com relatórios HTML/JSON e medianas em `reports/lighthouse/` |
 
 ### Variáveis de ambiente (`.env.example`)
 
@@ -90,8 +91,15 @@ os 5 s padrão do Playwright ficam apertados. A margem vale igual para todos os 
 
 ## Lighthouse
 
-Resultados medidos e limitações em `ARCHITECTURE.md` (seção "Lighthouse"): metas atingidas, **exceto Performance do catálogo em mobile (73 a 88 em 4 execuções, mediana ≈ 86)**.
-Para rodar: `npm run build && npm run preview` e, em outro terminal, `npx lighthouse http://localhost:4173 --view` (Chrome instalado).
+Para gerar a auditoria reproduzível exigida no desafio, primeiro inicie o build de produção e mantenha o preview aberto:
+
+```bash
+npm run build
+npm run preview # em outro terminal, padrão http://localhost:4173
+npm run audit:lighthouse
+```
+
+O script `scripts/audit-lighthouse.mjs` mede início e detalhe (`/nft/1`) em desktop e mobile, faz três execuções por combinação e grava relatórios HTML/JSON individuais, `summary.json` e `summary.csv` em `reports/lighthouse/`. Requer Chrome/Chromium e acesso ao pacote `lighthouse` via `npx`. Use `LIGHTHOUSE_BASE_URL` para auditar outra URL. As medianas só passam a existir após executar o script; não são pré-preenchidas nem apresentadas como resultados medidos.
 
 ## Deploy (Vercel)
 

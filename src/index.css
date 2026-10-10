@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0b0b14;
-  --color-surface: #14141f;
-  --color-surface-2: #1c1c2b;
-  --color-border: #2a2a3d;
-  --color-fg: #f4f4f8;
-  --color-muted: #a5a5bd;
-  --color-brand: #8b5cf6;
+  --color-bg: #f4f1eb;
+  --color-surface: #fffdf9;
+  --color-surface-2: #eae5dc;
+  --color-border: #ded7cc;
+  --color-fg: #282722;
+  --color-muted: #77736b;
+  --color-brand: #a6533c;
   --color-brand-fg: #ffffff;
-  --color-danger: #f87171;
-  --color-success: #34d399;
-  --color-warning: #fbbf24;
+  --color-danger: #b9473c;
+  --color-success: #47785b;
+  --color-warning: #a87932;
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 html, body, #root { min-height: 100%; }
-body { background: var(--color-bg); color: var(--color-fg); font-family: var(--font-sans); overflow-x: hidden; }
+body { background: var(--color-bg); color: var(--color-fg); font-family: var(--font-sans); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 :focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; border-radius: 6px; }
 
 .skeleton { position: relative; overflow: hidden; background: var(--color-surface-2); border-radius: 8px; }

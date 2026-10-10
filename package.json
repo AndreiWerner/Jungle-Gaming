@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test:e2e": "playwright test",
-    "dev:socket": "node server/socket-server.mjs"
+    "dev:socket": "node server/socket-server.mjs",
+    "audit:lighthouse": "node scripts/audit-lighthouse.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.1",

@@ -21,18 +21,33 @@ export const seedCoupons = (): Coupon[] => [
   { code: 'EXPIRED20', percent: 20, expiresAt: '2024-01-01T00:00:00Z' },
 ]
 
-const palette = [['#7c3aed', '#06b6d4'], ['#f43f5e', '#f59e0b'], ['#10b981', '#3b82f6'], ['#ec4899', '#8b5cf6'], ['#f97316', '#eab308'], ['#14b8a6', '#6366f1']]
+const palettes = [
+  ['#d8c4a8', '#8c604b', '#33463d', '#eee3d1'],
+  ['#d4d8c8', '#6d7e69', '#b46e4e', '#f0e8d9'],
+  ['#e3c7b9', '#8c5148', '#4a5650', '#f3e5d4'],
+  ['#d6c8b4', '#6e6254', '#b5a17d', '#f1e9dc'],
+  ['#c7d0c6', '#536d63', '#c38b61', '#e9e0d0'],
+  ['#ddc8a8', '#a65f45', '#5a6253', '#f4ead9'],
+]
 
-/** Imagem SVG gerada (data URI): sem assets externos, sem layout shift. */
+/** Ilustrações vetoriais editoriais com paleta terrosa, em vez de gradientes neon genéricos. */
 function art(seed: number, variant: number): string {
-  const [a, b] = palette[(seed + variant) % palette.length]
-  const r = 40 + ((seed * 37 + variant * 53) % 120)
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="400" height="400" fill="url(#g)"/><circle cx="${120 + variant * 60}" cy="${140 + (seed % 5) * 20}" r="${r}" fill="#fff" fill-opacity=".22"/><circle cx="${280 - variant * 30}" cy="270" r="${r / 2}" fill="#000" fill-opacity=".2"/></svg>`
+  const [paper, dark, accent, light] = palettes[(seed + variant) % palettes.length]
+  const shift = (seed * 19 + variant * 31) % 70
+  const motif = seed % 4
+  const drawing = motif === 0
+    ? `<path d="M0 270 Q80 ${190+shift} 150 255 T300 230 T400 250 V400 H0Z" fill="${dark}"/><path d="M0 315 Q100 255 205 315 T400 290 V400 H0Z" fill="${accent}"/><circle cx="${280-shift/3}" cy="${90+shift/4}" r="34" fill="${light}"/><path d="M40 340 Q95 280 150 340 M210 360 Q275 285 340 350" fill="none" stroke="${light}" stroke-width="3" opacity=".75"/>`
+    : motif === 1
+    ? `<rect x="64" y="48" width="272" height="304" rx="136" fill="${dark}"/><path d="M70 255 Q130 170 195 250 T330 210 V350 H70Z" fill="${accent}"/><circle cx="200" cy="142" r="45" fill="${paper}"/><path d="M105 320 L175 220 L220 285 L260 240 L320 320" fill="none" stroke="${light}" stroke-width="5" stroke-linecap="round"/>`
+    : motif === 2
+    ? `<rect x="58" y="54" width="284" height="292" fill="${light}"/><path d="M80 290 L160 115 L225 250 L270 170 L320 290Z" fill="${dark}"/><circle cx="255" cy="115" r="29" fill="${accent}"/><path d="M82 310 H318" stroke="${dark}" stroke-width="3"/>`
+    : `<path d="M200 48 C245 100 320 105 326 175 C334 250 264 320 200 350 C136 320 66 250 74 175 C80 105 155 100 200 48Z" fill="${dark}"/><path d="M200 92 C228 138 282 150 280 197 C278 238 233 278 200 300 C167 278 122 238 120 197 C118 150 172 138 200 92Z" fill="${paper}"/><circle cx="200" cy="196" r="34" fill="${accent}"/>`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><defs><pattern id="grain" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="1" cy="2" r=".65" fill="#33271f" opacity=".16"/></pattern></defs><rect width="400" height="400" fill="${paper}"/><path d="M0 0H400V400H0Z" fill="${light}" opacity=".25"/>${drawing}<rect width="400" height="400" fill="url(#grain)"/><path d="M22 22H378V378H22Z" fill="none" stroke="${dark}" stroke-opacity=".22" stroke-width="1"/></svg>`
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
 }
 
 const cats: Category[] = ['art', 'music', 'gaming', 'collectibles', 'photography']
-const collections = ['Neon Dreams', 'Pixel Forest', 'Echo Chamber', 'Void Walkers', 'Solar Drift']
+const collections = ['Quiet Landscapes', 'Field Notes', 'Small Rituals', 'Studies in Form', 'After the Rain']
 const prices = ['0.05', '0.125', '0.3', '0.75', '1.2', '2.5', '0.0875', '0.45']
 
 export const seedNfts = (): NFT[] =>
@@ -41,7 +56,7 @@ export const seedNfts = (): NFT[] =>
     const stock = n % 9 === 0 ? 0 : 1 + (n % 5) * 2
     return {
       id: String(n),
-      name: `${collections[i % 5]} #${String(n).padStart(3, '0')}`,
+      name: `${['Golden Hour', 'Moss Study', 'Still Life No. 4', 'Soft Geometry', 'Sunday Garden'][i % 5]} #${String(n).padStart(3, '0')}`,
       collection: collections[i % 5],
       edition: `#${n}/50`,
       category: cats[i % 5],
