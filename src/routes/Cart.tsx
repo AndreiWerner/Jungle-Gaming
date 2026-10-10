@@ -50,6 +50,9 @@ export function Cart() {
           {data ? <CartSummary quote={data} stale={stale} /> : <div role="status" aria-busy="true" aria-label="Carregando resumo" className="space-y-3"><div className="skeleton h-4 w-full" /><div className="skeleton h-4 w-full" /><div className="skeleton h-6 w-full" /></div>}
           <CouponForm appliedCode={cart.couponCode} applied={data?.coupon ?? null} onApply={(c) => actions.setCoupon(c)} onRemove={() => actions.setCoupon(null)} />
           {quote.isError && <Button variant="secondary" onClick={() => void quote.refetch()}>Recalcular resumo</Button>}
+          {data && !data.hasIssues
+            ? <Link to="/checkout" className="flex min-h-10 items-center justify-center rounded-lg bg-brand px-4 text-sm font-medium text-brand-fg hover:bg-violet-500">Finalizar compra</Link>
+            : <Button aria-disabled className="w-full" onClick={(e) => e.preventDefault()}>Resolva os avisos para finalizar</Button>}
         </section>
       </div>
     )

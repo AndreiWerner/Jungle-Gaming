@@ -1,20 +1,23 @@
-import { createRootRouteWithContext, createRoute, createRouter, Outlet, redirect } from '@tanstack/react-router'
+import { createRootRouteWithContext, createRoute, createRouter, lazyRouteComponent, Outlet, redirect } from '@tanstack/react-router'
 import type { QueryClient } from '@tanstack/react-query'
 import { Header } from '@/components/layout/Header'
 import { KEYS, storage } from '@/lib/storage'
 import type { Category, Session, SortKey } from '@/types'
 import { Home } from '@/routes/Home'
-import { NftDetail } from '@/routes/NftDetail'
-import { Cart } from '@/routes/Cart'
-import { Checkout } from '@/routes/Checkout'
-import { Order } from '@/routes/Order'
-import { Login } from '@/routes/Login'
-import { Register } from '@/routes/Register'
-import { Profile } from '@/routes/Profile'
-import { Wallets } from '@/routes/Wallets'
 import { ErrorState } from '@/components/ui/states'
 import { Toaster } from '@/components/layout/Toaster'
 import { SessionWatcher } from '@/components/layout/SessionWatcher'
+import { RealtimeStatus } from '@/components/layout/RealtimeStatus'
+
+// Páginas fora da rota inicial são carregadas sob demanda (menos JavaScript no primeiro acesso)
+const NftDetail = lazyRouteComponent(() => import('@/routes/NftDetail'), 'NftDetail')
+const Cart = lazyRouteComponent(() => import('@/routes/Cart'), 'Cart')
+const Checkout = lazyRouteComponent(() => import('@/routes/Checkout'), 'Checkout')
+const Order = lazyRouteComponent(() => import('@/routes/Order'), 'Order')
+const Login = lazyRouteComponent(() => import('@/routes/Login'), 'Login')
+const Register = lazyRouteComponent(() => import('@/routes/Register'), 'Register')
+const Profile = lazyRouteComponent(() => import('@/routes/Profile'), 'Profile')
+const Wallets = lazyRouteComponent(() => import('@/routes/Wallets'), 'Wallets')
 
 interface RouterContext { queryClient: QueryClient }
 
@@ -30,6 +33,7 @@ const root = createRootRouteWithContext<RouterContext>()({
       <SessionWatcher />
       <Header />
       <main id="main"><Outlet /></main>
+      <RealtimeStatus />
       <Toaster />
     </>
   ),

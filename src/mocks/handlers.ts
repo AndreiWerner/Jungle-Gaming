@@ -1,10 +1,11 @@
 import { http, HttpResponse } from 'msw'
 import type { Cart, Network, Page, Session, SortKey, User, Wallet, WalletProvider } from '@/types'
-import { cmp } from '@/lib/money'
+import { cmp, isValidEth } from '@/lib/money'
 import { db, newId, resetDb, save, type SessionRecord } from './db'
 import { DEMO_PASSWORD_HASH } from './seed'
 import { err, gate, parseScenario } from './scenarios'
-import { buildQuote, createOrder, ownerOf, settleOrders } from './logic'
+import { buildQuote, createOrder, nextEventId, ownerOf, settleAndPublish } from './logic'
+import { publish } from './publisher'
 import { delay } from 'msw'
 
 const WALLET_PROVIDERS: WalletProvider[] = ['metamask', 'coinbase', 'walletconnect']
@@ -182,9 +183,11 @@ export const handlers = [
     const key = request.headers.get('idempotency-key')
     if (!key) return err(400, 'BAD_REQUEST', 'Idempotency-Key obrigatório.')
     const idemKey = `${a.userId}:${key}`
+    const body = (await request.json()) as { quoteId: string; walletId: string; collector: { name: string; email: string } }
+    // A partir daqui NÃO há `await` até registrar a chave: checar + criar + registrar é atômico,
+    // então dois POSTs simultâneos com a mesma chave nunca criam dois pedidos.
     const existing = db.idempotency[idemKey]
     if (existing) return HttpResponse.json(db.orders.find((o) => o.id === existing), { status: 200 })
-    const body = (await request.json()) as { quoteId: string; walletId: string; collector: { name: string; email: string } }
     const wallet = (db.wallets[a.userId] ?? []).find((w) => w.id === body.walletId)
     if (!wallet?.connected) return err(400, 'BAD_REQUEST', 'Conecte uma carteira para continuar.')
     const cart = db.carts[a.userId] ?? { items: [], couponCode: null }
@@ -198,19 +201,21 @@ export const handlers = [
       couponCode: quote.coupon?.code ?? null, walletId: wallet.id, network: wallet.network, collector: body.collector,
     }, a.userId)
     db.idempotency[idemKey] = order.id; save()
+    // como um backend real: a resolução do pagamento acontece sozinha e é publicada em tempo real
+    setTimeout(() => settleAndPublish(sc), 2600)
     if (sc['order-timeout']) await delay(12000)
     return HttpResponse.json(order, { status: 201 })
   }),
   http.get('/api/orders', async ({ request }) => {
     const g = await gate(request, 'orders.list'); if (g) return g
     const a = authenticate(request); if (isResponse(a)) return a
-    settleOrders(parseScenario(request))
+    settleAndPublish(parseScenario(request))
     return HttpResponse.json(db.orders.filter((o) => ownerOf(o.id) === a.userId).sort((x, y) => y.createdAt.localeCompare(x.createdAt)))
   }),
   http.get('/api/orders/:id', async ({ request, params }) => {
     const g = await gate(request, 'orders.detail'); if (g) return g
     const a = authenticate(request); if (isResponse(a)) return a
-    settleOrders(parseScenario(request))
+    settleAndPublish(parseScenario(request))
     const order = db.orders.find((o) => o.id === params.id)
     if (!order) return err(404, 'NOT_FOUND', 'Pedido não encontrado.')
     if (ownerOf(order.id) !== a.userId) return err(403, 'FORBIDDEN', 'Este pedido pertence a outro usuário.')
@@ -272,7 +277,21 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
-  // ---------- utilitário de teste ----------
+  // ---------- utilitários de teste ----------
+  // Simula uma mudança de preço/estoque feita por outro agente: altera o banco, sobe a versão e publica nft.updated.
+  http.post('/api/__nft-update', async ({ request }) => {
+    const b = (await request.json()) as { id: string; price?: string; available?: number }
+    const nft = db.nfts.find((n) => n.id === b.id)
+    if (!nft) return err(404, 'NOT_FOUND', 'NFT não encontrado.')
+    if (b.price !== undefined && !isValidEth(b.price)) return err(400, 'BAD_REQUEST', 'Preço inválido.')
+    if (b.price !== undefined) nft.price = b.price
+    if (b.available !== undefined) nft.available = Math.max(0, Math.floor(b.available))
+    nft.version += 1
+    save()
+    publish({ type: 'nft.updated', eventId: nextEventId(), resource: `nft:${nft.id}`, version: nft.version, at: new Date().toISOString(), nftId: nft.id,
+      changes: { ...(b.price !== undefined && { price: nft.price }), ...(b.available !== undefined && { available: nft.available }) } })
+    return HttpResponse.json(nft)
+  }),
   http.post('/api/__reset', () => { resetDb(); return new HttpResponse(null, { status: 204 }) }),
 ]
 

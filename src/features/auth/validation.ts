@@ -1,4 +1,4 @@
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+export const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export type FieldErrors<K extends string> = Partial<Record<K, string>>
 

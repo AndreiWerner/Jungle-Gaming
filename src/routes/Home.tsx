@@ -46,6 +46,12 @@ export function Home() {
           <h2 id="featured-title" className="text-lg font-semibold">Em destaque</h2>
           <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">{featured.data!.map((n) => <NftCard key={n.id} nft={n} />)}</ul>
         </section>
+      ) : featured.isPending && !hasFilters && !search.page ? (
+        // reserva o espaço dos destaques enquanto carregam: evita deslocar o catálogo (layout shift)
+        <section aria-busy="true" aria-label="Carregando destaques" className="space-y-3">
+          <h2 className="text-lg font-semibold">Em destaque</h2>
+          <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <NftCardSkeleton key={i} />)}</ul>
+        </section>
       ) : null}
 
       <section aria-labelledby="catalog-title" className="space-y-4">

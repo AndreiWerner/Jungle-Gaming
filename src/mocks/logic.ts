@@ -1,6 +1,7 @@
 import type { Cart, CartLine, Order, Quote, SocketEvent } from '@/types'
 import { add, cmp, mul, pct, sub, sum } from '@/lib/money'
 import { db, newId, save } from './db'
+import { publish } from './publisher'
 
 export const NETWORK_FEE = '0.0015'
 
@@ -27,25 +28,30 @@ export function buildQuote(cart: Cart, flags: Record<string, string> = {}): Quot
   return { lines, subtotal, discount, networkFee, total, coupon: validCoupon, hasIssues, quoteId }
 }
 
-/** Resolve pedidos pendentes cujo prazo venceu. Idempotente. */
-export function settleOrders(flags: Record<string, string> = {}): SocketEvent[] {
-  const events: SocketEvent[] = []
+export interface Published { event: SocketEvent; userId?: string }
+export const nextEventId = () => { db.eventSeq += 1; return `evt_${Date.now().toString(36)}_${db.eventSeq}` }
+
+/** Resolve pedidos pendentes cujo prazo venceu. Idempotente. Devolve os eventos a publicar. */
+export function settleOrders(flags: Record<string, string> = {}): Published[] {
+  const out: Published[] = []
   const now = Date.now()
   for (const order of db.orders) {
     if (order.status !== 'pending' || (db.settleAt[order.id] ?? 0) > now) continue
     const rejected = flags['payment-rejected'] === 'true' || order.collector.name.toLowerCase().includes('recusar')
+    const owner = ownerOf(order.id)
     order.version += 1
     if (rejected) {
       order.status = 'rejected'
       order.rejectionReason = 'Pagamento recusado pela carteira.'
     } else {
       order.status = 'confirmed'
-      const userId = db.sessions.find((s) => s.userId && order.id.length > 0 && db.orders.includes(order))?.userId
       for (const item of order.items) {
         const nft = db.nfts.find((n) => n.id === item.nftId)
-        if (nft) { nft.available = Math.max(0, nft.available - item.quantity); nft.version += 1 }
+        if (!nft) continue
+        nft.available = Math.max(0, nft.available - item.quantity)
+        nft.version += 1
+        out.push({ event: { type: 'nft.updated', eventId: nextEventId(), resource: `nft:${nft.id}`, version: nft.version, at: new Date().toISOString(), nftId: nft.id, changes: { available: nft.available } } })
       }
-      const owner = ownerOf(order.id)
       if (owner && db.carts[owner]) {
         const bought = new Map(order.items.map((i) => [i.nftId, i.quantity]))
         db.carts[owner].items = db.carts[owner].items.flatMap((ci) => {
@@ -54,17 +60,17 @@ export function settleOrders(flags: Record<string, string> = {}): SocketEvent[] 
           return ci.quantity > q ? [{ ...ci, quantity: ci.quantity - q }] : []
         })
       }
-      void userId
     }
     delete db.settleAt[order.id]
-    db.eventSeq += 1
-    events.push({
-      type: 'order.updated', eventId: `evt_${db.eventSeq}`, resource: `order:${order.id}`, version: order.version,
-      at: new Date().toISOString(), orderId: order.id, status: order.status, rejectionReason: order.rejectionReason,
-    })
+    out.push({ userId: owner, event: { type: 'order.updated', eventId: nextEventId(), resource: `order:${order.id}`, version: order.version, at: new Date().toISOString(), orderId: order.id, status: order.status, rejectionReason: order.rejectionReason } })
   }
-  if (events.length) save()
-  return events
+  if (out.length) save()
+  return out
+}
+
+/** Resolve e publica os eventos resultantes no servidor Socket.IO. */
+export function settleAndPublish(flags: Record<string, string> = {}) {
+  for (const { event, userId } of settleOrders(flags)) publish(event, userId)
 }
 
 const owners: Record<string, string> = {}

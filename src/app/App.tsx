@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
 import { SessionProvider } from './session'
+import { RealtimeProvider } from '@/features/realtime/RealtimeProvider'
 import { createAppRouter } from './router'
 import { ApiError } from '@/lib/errors'
 
@@ -24,7 +25,9 @@ export function App() {
   return (
     <QueryClientProvider client={client}>
       <SessionProvider>
-        <RouterProvider router={router} />
+        <RealtimeProvider>
+          <RouterProvider router={router} />
+        </RealtimeProvider>
       </SessionProvider>
     </QueryClientProvider>
   )
