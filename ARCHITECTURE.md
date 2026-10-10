@@ -73,14 +73,17 @@ do dado em cache (um REST mais novo vence). `nft.updated` atualiza detalhe e lis
 (carrinho/checkout). `order.updated` atualiza o pedido do usuário atual e invalida o histórico. Na **reconexão**, tudo (`nfts`, `quote`, `cart`, `orders`)
 é invalidado e rebuscado via REST. Os eventos não passam por `setState` direto: sempre `socket.io-client → ledger → cache do Query`.
 
-**Polling de pedidos** continua como fallback: 5 s com o socket conectado (rede de segurança) e 1,5 s sem ele. O estado é exibido no rodapé
+**Polling de pedidos** continua como fallback, no detalhe (`useOrder`) **e no histórico** (`useOrders`, enquanto houver pedido pendente): 5 s com o socket
+conectado (rede de segurança) e 1,5 s sem ele. Ao criar um pedido, o checkout também invalida o histórico em cache. O estado é exibido no rodapé
 ("Tempo real: conectado / reconectando… / indisponível").
 
 ### Servidor de desenvolvimento × produção
 
 `server/socket-server.mjs` é um **relay de desenvolvimento**, iniciado junto com `npm run dev` por um plugin do Vite (ou isolado com `npm run dev:socket`).
 Como todo o "backend" é o MSW dentro do navegador, os handlers publicam seus eventos neste servidor (cliente com `role: "backend"`) e ele os entrega:
-`nft.updated` aos clientes do mesmo backend simulado; `order.updated` somente à sala do dono do pedido. Os pedidos são resolvidos por um timer do mock (~2,6 s), como faria um backend real.
+`nft.updated` aos clientes do mesmo backend simulado; `order.updated` somente à sala do dono do pedido. Os pedidos são resolvidos por um timer do mock (~2,6 s), como faria um backend real. Como esse timer vive na página que fez o `POST`, uma recarga ou
+navegação completa o destruiria; por isso o mock **reagenda os pedidos pendentes ao iniciar** (`schedulePendingSettlements`) e a resolução também ocorre
+de forma preguiçosa em `GET /orders` e `GET /orders/:id` quando o prazo já venceu.
 
 **Isolamento por backend simulado:** cada navegador tem o próprio banco (MSW + `localStorage`), identificado por `localStorage["nftm:backend-id"]`.
 Cliente e publisher enviam esse `backendId` no handshake e o servidor só entrega eventos a clientes do **mesmo** `backendId` (salas `tenant:<id>` e
@@ -110,22 +113,22 @@ Playwright em `e2e/`, contra `npm run dev` (MSW + Socket.IO). Os testes de tempo
 
 ## Lighthouse
 
-Procedimento: `npm run build`, `npm run preview` (porta 4173) e a API Node do Lighthouse 13.5 com Chromium 1194 *headless* (container Linux, sem GPU),
-categorias performance, accessibility, best-practices e seo, perfis `mobile` (padrão) e `desktop`. **Uma única execução por página**, então há variação
-entre medições (±3 pontos observados). Metas: Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 95, SEO ≥ 90.
+Procedimento: `npm run build`, `npm run preview` (porta 4173) e a API Node do Lighthouse 13.5 com Chromium 1194 *headless* (container Linux de **1 núcleo**, sem GPU),
+categorias performance, accessibility, best-practices e seo, perfis `mobile` (padrão) e `desktop`. Metas: Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 95, SEO ≥ 90.
+Uma execução por célula, exceto o catálogo mobile (4 execuções), porque a variação entre execuções é grande neste ambiente.
 
 | Página | Perfil | Perf | A11y | BP | SEO | LCP | CLS | TBT |
 |---|---|---|---|---|---|---|---|---|
-| Catálogo `/` | mobile | **85** | 100 | 96 | 92 | 3.4 s | 0 | 200 ms |
-| Catálogo `/` | desktop | 99 | 96 | 100 | 92 | 0.8 s | 0.001 | 70 ms |
-| Detalhe `/nft/1` * | mobile | 90 | 96 | 100 | 92 | 2.9 s | 0 | 140 ms |
-| Detalhe `/nft/1` * | desktop | 100 | 96 | 100 | 92 | 0.7 s | 0 | 10 ms |
-| Login `/login` * | mobile | 92 | 96 | 100 | 91 | 2.9 s | 0 | 70 ms |
-| Login `/login` * | desktop | 100 | 96 | 100 | 91 | 0.6 s | 0 | 0 ms |
+| Catálogo `/` | mobile | **73 · 85 · 87 · 88** (mediana ≈ 86) | 100 | 96 | 92 | 3.2–4.0 s | 0 | 160–260 ms |
+| Catálogo `/` | desktop | 100 | 96 | 100 | 92 | 0.8 s | 0.001 | 30 ms |
+| Detalhe `/nft/1` | mobile | 91 | 96 | 100 | 92 | 2.9 s | 0 | 100 ms |
+| Detalhe `/nft/1` | desktop | 100 | 96 | 100 | 92 | 0.6 s | 0 | 0 ms |
+| Login `/login` | mobile | 92 | 96 | 100 | 91 | 2.9 s | 0 | 60 ms |
+| Login `/login` | desktop | 100 | 96 | 100 | 91 | 0.6 s | 0 | 0 ms |
 
-\* Medidos **antes** da divisão do código por rota (a correção de layout shift do catálogo e a divisão por rota vieram depois e só o catálogo foi remedido).
-
-Resultado: **todas as metas foram atingidas, exceto Performance do catálogo em mobile (85 < 90).** Histórico do catálogo: 72 (CLS desktop 0.268) → correção do
-layout shift (espaço reservado para os destaques) → 86/99 → divisão por rota (bundle inicial de 560 kB para 409 kB) → 85/99 (sem ganho mensurável).
-Causa provável do que resta: o MSW (chunk de ~408 kB, 158 kB gzip) é carregado e inicializado **antes** da primeira renderização, porque o desafio exige mocks
-funcionando em produção; com CPU 4× mais lenta (perfil mobile) isso pesa em LCP/TBT. Não foi tentado: adiar o MSW por rota, ou servir imagens/rotas pré-renderizadas.
+Resultado: **todas as metas foram atingidas, exceto Performance do catálogo em mobile**, que ficou entre 73 e 88 (mediana ≈ 86) e **nunca chegou a 90**.
+Histórico: a primeira medição do catálogo deu 72 no mobile e 86 no desktop com CLS 0.268; o deslocamento era causado pela seção "Em destaque", que aparecia depois
+do catálogo e o empurrava. Reservar o espaço com skeletons zerou o CLS. Foi testada a divisão do código por rota (`lazyRouteComponent`): o bundle inicial caiu de
+560 kB para 409 kB, mas a nota não melhorou de forma mensurável e a partida a frio dos testes ficou mais lenta (+~400 ms depois do `load`), então foi **revertida**.
+Causa provável do que resta: o MSW (chunk de ~408 kB, 158 kB gzip) precisa carregar e registrar o service worker **antes** da primeira renderização, porque o desafio exige
+mocks funcionando em produção; com a CPU 4× mais lenta do perfil mobile isso pesa em LCP/TBT. Não foi tentado: adiar o MSW por rota ou pré-renderizar o catálogo.

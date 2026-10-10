@@ -3,6 +3,8 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // O SPA só renderiza depois do evento `load` (MSW + React); sob carga paralela 5 s é justo. Margem para o boot, igual para todos os testes.
+  expect: { timeout: 10_000 },
   retries: process.env.CI ? 1 : 0,
   use: { baseURL: 'http://localhost:5173', trace: 'on-first-retry' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],

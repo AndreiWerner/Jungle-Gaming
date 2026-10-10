@@ -85,10 +85,12 @@ npx playwright show-report        # relatório HTML
 Os testes ficam em `e2e/` (autenticação, catálogo, detalhe, favoritos, carrinho, carteiras, checkout/pedidos, perfil,
 tempo real e responsividade em 390/768/1440 px). Cada teste roda em um contexto novo, então começa com o banco simulado limpo.
 O `playwright.config.ts` reaproveita um `npm run dev` já aberto na porta 5173; feche-o para uma execução 100% limpa.
+O timeout padrão das asserções é de 10 s (`expect.timeout`): o SPA só renderiza depois do evento `load` (MSW + React) e, com vários workers em paralelo,
+os 5 s padrão do Playwright ficam apertados. A margem vale igual para todos os testes.
 
 ## Lighthouse
 
-Resultados medidos e limitações em `ARCHITECTURE.md` (seção "Lighthouse"): metas atingidas, **exceto Performance do catálogo em mobile (85)**.
+Resultados medidos e limitações em `ARCHITECTURE.md` (seção "Lighthouse"): metas atingidas, **exceto Performance do catálogo em mobile (73 a 88 em 4 execuções, mediana ≈ 86)**.
 Para rodar: `npm run build && npm run preview` e, em outro terminal, `npx lighthouse http://localhost:4173 --view` (Chrome instalado).
 
 ## Deploy (Vercel)

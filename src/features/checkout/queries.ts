@@ -33,5 +33,12 @@ export function useOrder(id: string) {
 
 export function useOrders() {
   const { session } = useSession()
-  return useQuery({ queryKey: ordersKey(session?.user.id), queryFn: ({ signal }) => ordersApi.list(signal), enabled: !!session })
+  const realtime = useRealtimeStatus()
+  return useQuery({
+    queryKey: ordersKey(session?.user.id),
+    queryFn: ({ signal }) => ordersApi.list(signal),
+    enabled: !!session,
+    // Fallback: enquanto houver pedido pendente, reconcilia por REST (5 s com o socket conectado; 1,5 s sem ele)
+    refetchInterval: (q) => (q.state.data?.some((o) => o.status === 'pending') ? (realtime === 'connected' ? 5000 : 1500) : false),
+  })
 }

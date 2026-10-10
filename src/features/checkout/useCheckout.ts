@@ -6,7 +6,7 @@ import { cartApi } from '@/services/cart'
 import { ordersApi } from '@/services/orders'
 import { ApiError, toApiError } from '@/lib/errors'
 import type { Cart, Quote } from '@/types'
-import { orderKey } from './queries'
+import { orderKey, ordersKey } from './queries'
 
 class QuoteChanged extends Error {}
 interface Input { displayedQuoteId: string; walletId: string; collector: { name: string; email: string } }
@@ -37,6 +37,7 @@ export function useCheckout(cart: Cart) {
     onSuccess: (order) => {
       keyRef.current = null
       qc.setQueryData(orderKey(session?.user.id, order.id), order)
+      void qc.invalidateQueries({ queryKey: ordersKey(session?.user.id) }) // o histórico passa a incluir o novo pedido
       void router.navigate({ to: '/order/$id', params: { id: order.id } })
     },
     onError: (error) => {

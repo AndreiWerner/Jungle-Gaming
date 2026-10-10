@@ -2,6 +2,7 @@ import type { Cart, CartLine, Order, Quote, SocketEvent } from '@/types'
 import { add, cmp, mul, pct, sub, sum } from '@/lib/money'
 import { db, newId, save } from './db'
 import { publish } from './publisher'
+import { currentScenario } from './scenarios'
 
 export const NETWORK_FEE = '0.0015'
 
@@ -71,6 +72,18 @@ export function settleOrders(flags: Record<string, string> = {}): Published[] {
 /** Resolve e publica os eventos resultantes no servidor Socket.IO. */
 export function settleAndPublish(flags: Record<string, string> = {}) {
   for (const { event, userId } of settleOrders(flags)) publish(event, userId)
+}
+
+/**
+ * Reagenda a resolução dos pedidos ainda pendentes. O timer criado no POST vive na página que o fez e morre
+ * numa recarga/navegação; um backend real continuaria processando, então o mock retoma de onde parou.
+ */
+export function schedulePendingSettlements() {
+  for (const order of db.orders) {
+    if (order.status !== 'pending') continue
+    const wait = Math.max(0, (db.settleAt[order.id] ?? 0) - Date.now()) + 100
+    setTimeout(() => settleAndPublish(currentScenario()), wait)
+  }
 }
 
 const owners: Record<string, string> = {}

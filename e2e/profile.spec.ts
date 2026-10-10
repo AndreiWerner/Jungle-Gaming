@@ -57,6 +57,29 @@ test('histórico lista o pedido, atualiza o status e leva ao detalhe', async ({ 
   await expect(page).toHaveURL(new RegExp(`/order/${id}$`))
 })
 
+test('pedido criado no checkout aparece no histórico sem recarregar a página', async ({ page }) => {
+  // sem tempo real: só a invalidação feita ao criar o pedido pode atualizar a lista em cache
+  await page.addInitScript(() => localStorage.setItem('nftm:socket-url', JSON.stringify('http://localhost:9')))
+  await login(page, 'ana@demo.com')
+  // abre o perfil ANTES: a lista vazia entra no cache; depois compra navegando só por links (sem recarregar)
+  await nav(page).getByRole('link', { name: 'Perfil' }).click()
+  await expect(page.getByText('Você ainda não fez pedidos')).toBeVisible()
+  await nav(page).getByRole('link', { name: 'Explorar' }).click()
+  await page.getByRole('region', { name: 'Catálogo' }).getByRole('link').first().click()
+  const add = page.getByRole('button', { name: 'Adicionar ao carrinho' })
+  await expect(add).toHaveAttribute('aria-disabled', 'false')
+  await add.click()
+  await page.getByRole('link', { name: 'Ver carrinho' }).click()
+  await page.getByRole('link', { name: 'Finalizar compra' }).click()
+  await page.getByRole('radio', { name: /MetaMask/ }).check()
+  await page.getByRole('button', { name: 'Conectar carteira' }).click()
+  await expect(page.getByRole('button', { name: 'Desconectar carteira' })).toBeVisible()
+  await page.getByRole('button', { name: 'Confirmar compra' }).click()
+  await expect(page).toHaveURL(/\/order\/ord_/)
+  await nav(page).getByRole('link', { name: 'Perfil' }).click()
+  await expect(page.getByRole('list', { name: 'Histórico de pedidos' }).getByRole('listitem')).toHaveCount(1)
+})
+
 test('pedidos ficam isolados por usuário', async ({ page }) => {
   await login(page, 'ana@demo.com')
   const id = await placeOrderViaApi(page)

@@ -7,12 +7,17 @@ import type { ApiErrorBody } from '@/types'
  * Chaves especiais: latency=<ms>. Demais chaves: id da rota (ex.: nfts.list=500).
  * Flags: session-expired, payment-rejected, order-timeout, price-changed, sold-out, empty.
  */
-export function parseScenario(request: Request): Record<string, string> {
-  const raw = request.headers.get('x-mock-scenario') ?? ''
+export function parseScenarioString(raw: string): Record<string, string> {
   return Object.fromEntries(raw.split(';').map((p) => p.trim()).filter(Boolean).map((p) => {
     const [k, v = 'true'] = p.split('=')
     return [k, v]
   }))
+}
+export const parseScenario = (request: Request) => parseScenarioString(request.headers.get('x-mock-scenario') ?? '')
+
+/** Cenário atual lido do localStorage (para código que roda fora de uma requisição, como timers). */
+export function currentScenario(): Record<string, string> {
+  try { const raw = localStorage.getItem('nftm:scenario'); return raw ? parseScenarioString(JSON.parse(raw) as string) : {} } catch { return {} }
 }
 
 export const err = (status: number, code: ApiErrorBody['code'], message: string, details?: Record<string, unknown>) =>
